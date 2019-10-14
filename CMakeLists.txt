@@ -1,7 +1,8 @@
 cmake_minimum_required(VERSION 3.12)
-project(HumanityGenerationSimulation)
+set(PROJECT_NAME HumanityGenerationSimulation)
+project(${PROJECT_NAME})
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -pthread")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++2a -pthread")
 
 set(BOOST_REQUIRED_COMPONENTS
         system
@@ -17,4 +18,6 @@ find_package(Boost "1.54.0" REQUIRED ${BOOST_REQUIRED_COMPONENTS})
 include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
 link_directories(${Boost_LIBRARY_DIRS})
 
-add_executable(HumanityGenerationSimulation src/main.cpp src/utilities/Design.cpp src/utilities/Design.hpp src/core/Board.cpp src/core/Board.h "src/data structures/enums.h" "src/data structures/Structs.h" "src/data structures/Data.cpp" "src/data structures/Data.h" "src/data structures/Human.cpp" "src/data structures/Human.h" "src/data structures/Event.cpp" "src/data structures/Event.h" "src/data structures/Games.cpp" "src/data structures/Games.h")
+file(GLOB_RECURSE SOURCES RELATIVE ${CMAKE_SOURCE_DIR} "src/*")
+add_executable(${PROJECT_NAME} ${SOURCES})
+target_link_libraries(${PROJECT_NAME} ${Boost_LIBRARIES})
