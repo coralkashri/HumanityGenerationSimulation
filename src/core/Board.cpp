@@ -1,5 +1,12 @@
 #include "Board.h"
+#include <fstream>
+#include <filesystem>
+
 #define CLEAR_SCREEN true
+
+using namespace boost::numeric::ublas;
+using namespace std;
+
 Board::Board(size_t board_size) : board_size(board_size < 20 ? 20 : board_size), board(this->board_size, this->board_size), game_data(this) {
     running = false;
 }
@@ -42,7 +49,7 @@ void Board::print_board(const board_type &board) {
     cout << "Humans counter: " << humans_count << endl;
 }
 
-void check_meet(board_type &board, Point human_point) {
+void Board::check_meet(board_type &board, Point human_point) {
     shared_ptr<Human> me = board(human_point.x, human_point.y);
     //size_t start_x_searching = ((int)human_point.x - (int)1 < 0) ? 0 : human_point.x - 1;
     //size_t start_y_searching = ((int)human_point.y - (int)1 < 0) ? 0 : human_point.y - 1;
@@ -108,7 +115,7 @@ void Board::next_generation(board_type &board, size_t &current_generation) {
 
 void Board::ClearScreen() {
 #if CLEAR_SCREEN
-    std::system("clear");
+    std::system("tput reset");
 #endif
 }
 
@@ -133,7 +140,10 @@ void Board::start() {
         print_board(board);
         std::this_thread::sleep_for(std::chrono::milliseconds(500));
         cout << endl << endl << endl<< endl << endl;
-        //ClearScreen();
+        write_protect.wait_for_write_access();
+        // todo Write data to file
+        write_protect.close_write_access();
+        ClearScreen();
     }
 }
 

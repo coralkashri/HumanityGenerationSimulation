@@ -1,6 +1,6 @@
 #include <memory>
 #include "Human.h"
-
+#include "../utilities/Exceptions.h"
 
 Human::Human(const string &name, Gender gender, Parents parents, Point position, float generation_birth, Data *game_data) : name(name), gender(gender), generation_birth(generation_birth) {
     this->parents.father = parents.father;
@@ -16,7 +16,12 @@ Human::Human(const string &name, Gender gender, Parents parents, Point position,
 /// Events
 
 void Human::meet(Human &human) {
-    bool is_friend = search_human_in_friends(human) != friends.size();
+    bool is_friend = false;
+    try {
+        search_human_in_friends(human);
+        is_friend = true;
+    } catch (custom_exceptions::NoFriendException&) {
+    }
     bool is_mine_partner = &human == partner;
     bool is_one_of_my_kids = search_human_in_kids(human) != kids.size();
 
@@ -96,17 +101,22 @@ bool Human::consider_friendship_proposal(Human &potential_friend) {
 
 bool Human::marriage_conditions(Human &potential_partner) {
     // Find potential partner in friends list
-    size_t index_in_friends = search_human_in_friends(potential_partner);
+    bool response = false;
+    try {
+        size_t index_in_friends = search_human_in_friends(potential_partner);
 
-    bool response = partner == nullptr &&
-                    index_in_friends < friends.size() &&
-                    friends[index_in_friends].friend_connection_value > 95 &&
-                    this->attraction_to_gender == potential_partner.gender &&
-                    game_data->test_marriage_legality(age, potential_partner.age);
-
+        response = partner == nullptr &&
+                        index_in_friends < friends.size() &&
+                        friends[index_in_friends].friend_connection_value > 95 &&
+                        this->attraction_to_gender == potential_partner.gender &&
+                        game_data->test_marriage_legality(age, potential_partner.age);
+    } catch (custom_exceptions::NoFriendException&) {
+    } catch (...) {
+    }
     return response;
 }
 
+// After meet_friend -> if potential_partner is already a friend
 bool Human::consider_propose_marriage(Human &potential_partner) {
     bool conditions = marriage_conditions(potential_partner);
     bool response = false;
@@ -121,9 +131,13 @@ bool Human::propose_marriage(Human &potential_partner) {
     if (response) {
         // todo: Add event (MARRIAGE)
         partner = &potential_partner;
-        size_t index_in_friends = search_human_in_friends(potential_partner);
-        friends.erase(friends.begin() + index_in_friends);
-        make_love();
+        try {
+            size_t index_in_friends = search_human_in_friends(potential_partner);
+            friends.erase(friends.begin() + index_in_friends);
+            make_love();
+        } catch (custom_exceptions::NoFriendException&){
+        } catch (...) {
+        }
     }
     return response;
 }
@@ -136,9 +150,13 @@ bool Human::consider_marriage_proposition(Human &potential_partner) {
         // todo: Add event (MARRIAGE)
 
         // Find potential partner in friends list
-        size_t index_in_friends = search_human_in_friends(potential_partner);
-        friends.erase(friends.begin() + index_in_friends);
-        partner = &potential_partner;
+        try {
+            size_t index_in_friends = search_human_in_friends(potential_partner);
+            friends.erase(friends.begin() + index_in_friends);
+            partner = &potential_partner;
+        } catch (custom_exceptions::NoFriendException&) {
+        } catch (...) {
+        }
     }
     return answer;
 }
@@ -146,10 +164,14 @@ bool Human::consider_marriage_proposition(Human &potential_partner) {
 /// Meetings
 
 void Human::meet_friend(Human &my_friend) {
-    size_t index_in_friends = search_human_in_friends(my_friend);
-    friends[index_in_friends].friend_connection_value += 10;
-    if (partner == nullptr) {
-        consider_propose_marriage(my_friend);
+    try {
+        size_t index_in_friends = search_human_in_friends(my_friend);
+        friends[index_in_friends].friend_connection_value += 10;
+        if (partner == nullptr) {
+            consider_propose_marriage(my_friend);
+        }
+    } catch (custom_exceptions::NoFriendException&) {
+    } catch (...) {
     }
 }
 
@@ -171,7 +193,7 @@ size_t Human::search_human_in_friends(Human &human) {
             break;
         }
     }
-    return index_in_friends;
+    throw custom_exceptions::NoFriendException();
 }
 
 size_t Human::search_human_in_kids(Human &human) {
@@ -195,6 +217,8 @@ size_t Human::think_of_number() { // TODO: Get the human to guess his number (if
         preferred_number = (preferred_number + 2) % max_number;
     }
 
+    /// Guessing number with high percents for numbers around the person's favorite number
+    // TODO: add percents to friend favorite numbers if known (based on previous games with this friend).
     for (size_t i = preferred_number - 2; i <= preferred_number + 2; i++) {
         if (i == preferred_number - 2 || i == preferred_number + 2) {
             percent_idx = 30;

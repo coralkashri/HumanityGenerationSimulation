@@ -11,10 +11,9 @@
 #include "../data structures/Structs.h"
 #include "../data structures/Human.h"
 #include "../data structures/Data.h"
+#include "sync_read_write.h"
 
-using namespace boost::numeric::ublas;
-using namespace std;
-using board_type = matrix<shared_ptr<Human>>;
+using board_type = boost::numeric::ublas::matrix<shared_ptr<Human>>;
 
 class Board {
 private:
@@ -22,8 +21,10 @@ private:
     board_type board;
     Data game_data;
     bool running;
+    sync_read_write write_protect;
     void print_board(const board_type &board);
     void next_generation(board_type &board, size_t &current_generation);
+    void check_meet(board_type &board, Point human_point);
     void ClearScreen();
 
 public:
